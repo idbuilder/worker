@@ -131,15 +131,6 @@ impl TestServer {
             .await
             .expect("Request failed")
     }
-
-    async fn delete_admin(&self, path: &str) -> Response {
-        self.client
-            .delete(format!("{}{}", self.base_url(), path))
-            .header("Authorization", format!("Bearer {}", self.admin_token))
-            .send()
-            .await
-            .expect("Request failed")
-    }
 }
 
 /// API response structure.
@@ -232,6 +223,7 @@ async fn test_invalid_token() {
 
 #[derive(Debug, Deserialize)]
 struct TokenData {
+    key: String,
     token: String,
 }
 
@@ -239,22 +231,17 @@ struct TokenData {
 async fn test_create_and_use_key_token() {
     let server = TestServer::new().await;
 
-    // Create a key token
-    let response = server
-        .post_admin(
-            "/v1/auth/token",
-            &json!({
-                "description": "Test token",
-                "expires_in": 3600
-            }),
-        )
-        .await;
+    // Get (auto-create) a key token via GET
+    let response = server.get_admin("/v1/auth/token?key=token_test").await;
     assert_eq!(response.status(), StatusCode::OK);
 
     let body: ApiResponse<TokenData> = response.json().await.unwrap();
     assert!(body.is_success());
-    let token = body.data.unwrap().token;
-    assert!(token.starts_with("key_"));
+    let data = body.data.unwrap();
+    assert_eq!(data.key, "token_test");
+    let token = data.token;
+    // Token should be 64 characters of base64
+    assert_eq!(token.len(), 64);
 
     // Create a config with admin token
     server
@@ -281,44 +268,6 @@ async fn test_create_and_use_key_token() {
         .get_with_token("/v1/config/increment?name=token_test", &token)
         .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
-}
-
-#[tokio::test]
-async fn test_revoke_token() {
-    let server = TestServer::new().await;
-
-    // Create a token
-    let response = server
-        .post_admin("/v1/auth/token", &json!({"description": "To revoke"}))
-        .await;
-    let body: ApiResponse<TokenData> = response.json().await.unwrap();
-    let token = body.data.unwrap().token;
-
-    // Revoke it
-    let response = server
-        .delete_admin(&format!("/v1/auth/token/{}", token))
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // Create config
-    server
-        .post_admin(
-            "/v1/config/increment",
-            &json!({
-                "name": "revoke_test",
-                "start": 1,
-                "step": 1,
-                "min": 1,
-                "max": 1000000
-            }),
-        )
-        .await;
-
-    // Token should no longer work
-    let response = server
-        .get_with_token("/v1/id/increment?name=revoke_test", &token)
-        .await;
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
 // ============================================================================

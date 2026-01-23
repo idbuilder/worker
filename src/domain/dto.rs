@@ -163,7 +163,10 @@ const fn default_expiration() -> u64 {
 /// Response containing token information.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenResponse {
-    /// The generated token.
+    /// The associated key name.
+    pub key: String,
+
+    /// The generated token (64-character base64 string).
     pub token: String,
 
     /// Token type (always "key" for generated tokens).

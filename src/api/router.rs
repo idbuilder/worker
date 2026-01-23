@@ -2,7 +2,7 @@
 
 use axum::{
     Router, middleware,
-    routing::{delete, get, post},
+    routing::{get, post},
 };
 use tower_http::trace::TraceLayer;
 
@@ -37,8 +37,8 @@ pub fn create_router(state: AppState) -> Router {
 
     // Auth routes (admin auth required)
     let auth_routes = Router::new()
-        .route("/token", post(auth::create_token))
-        .route("/token/{token_id}", delete(auth::revoke_token))
+        .route("/token", get(auth::get_token))
+        .route("/tokenreset", get(auth::reset_token))
         .layer(middleware::from_fn_with_state(state.clone(), require_admin));
 
     // Combine all routes

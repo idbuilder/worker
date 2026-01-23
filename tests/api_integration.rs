@@ -221,6 +221,46 @@ async fn test_invalid_token() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
+#[tokio::test]
+async fn test_verify_with_valid_admin_token() {
+    let server = TestServer::new().await;
+    let response = server.get_admin("/v1/auth/verify").await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: ApiResponse<()> = response.json().await.unwrap();
+    assert!(body.is_success());
+}
+
+#[tokio::test]
+async fn test_verify_without_token() {
+    let server = TestServer::new().await;
+    let response = server.get("/v1/auth/verify").await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn test_verify_with_invalid_token() {
+    let server = TestServer::new().await;
+    let response = server
+        .get_with_token("/v1/auth/verify", "invalid_token")
+        .await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn test_verify_with_key_token_forbidden() {
+    let server = TestServer::new().await;
+
+    // Get a key token first
+    let response = server.get_admin("/v1/auth/token?key=verify_test").await;
+    let body: ApiResponse<TokenData> = response.json().await.unwrap();
+    let key_token = body.data.unwrap().token;
+
+    // Key token should not be able to access verify endpoint (admin only)
+    let response = server.get_with_token("/v1/auth/verify", &key_token).await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
 #[derive(Debug, Deserialize)]
 struct TokenData {
     key: String,

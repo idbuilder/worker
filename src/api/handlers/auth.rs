@@ -75,3 +75,12 @@ pub async fn reset_token(
 
     Ok(Json(ApiResponse::success(response)))
 }
+
+/// Verify admin token validity.
+///
+/// Returns success if the admin token is valid.
+/// The actual authentication is handled by the `require_admin` middleware,
+/// so if this handler is reached, the token is valid.
+pub async fn verify() -> Json<ApiResponse<()>> {
+    Json(ApiResponse::ok())
+}

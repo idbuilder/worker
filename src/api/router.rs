@@ -40,6 +40,7 @@ pub fn create_router(state: AppState) -> Router {
     let auth_routes = Router::new()
         .route("/token", get(auth::get_token))
         .route("/tokenreset", get(auth::reset_token))
+        .route("/verify", get(auth::verify))
         .layer(middleware::from_fn_with_state(state.clone(), require_admin));
 
     // Combine all routes

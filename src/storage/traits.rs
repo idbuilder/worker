@@ -14,6 +14,9 @@ use crate::domain::{
 };
 use crate::error::StorageResult;
 
+/// Type alias for the lock release function.
+type ReleaseFn = Box<dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send>;
+
 /// Sequence storage operations.
 ///
 /// Provides atomic operations for managing sequence counters.
@@ -125,7 +128,7 @@ pub trait DistributedLock: Send + Sync {
 /// The lock is automatically released when the guard is dropped.
 pub struct LockGuard {
     key: String,
-    release_fn: Option<Box<dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send>>,
+    release_fn: Option<ReleaseFn>,
 }
 
 impl LockGuard {

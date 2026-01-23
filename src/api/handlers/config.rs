@@ -20,6 +20,10 @@ pub struct GetConfigQuery {
 // ============== Increment Config ==============
 
 /// Create a new increment configuration.
+///
+/// # Errors
+///
+/// Returns an error if the configuration is invalid or already exists.
 pub async fn create_increment(
     State(state): State<AppState>,
     Json(config): Json<IncrementConfig>,
@@ -29,6 +33,10 @@ pub async fn create_increment(
 }
 
 /// Get an increment configuration.
+///
+/// # Errors
+///
+/// Returns an error if the configuration is not found.
 pub async fn get_increment(
     State(state): State<AppState>,
     Query(query): Query<GetConfigQuery>,
@@ -40,6 +48,10 @@ pub async fn get_increment(
 // ============== Snowflake Config ==============
 
 /// Create a new snowflake configuration.
+///
+/// # Errors
+///
+/// Returns an error if the configuration is invalid or already exists.
 pub async fn create_snowflake(
     State(state): State<AppState>,
     Json(config): Json<SnowflakeConfig>,
@@ -49,6 +61,10 @@ pub async fn create_snowflake(
 }
 
 /// Get a snowflake configuration.
+///
+/// # Errors
+///
+/// Returns an error if the configuration is not found.
 pub async fn get_snowflake(
     State(state): State<AppState>,
     Query(query): Query<GetConfigQuery>,
@@ -60,6 +76,10 @@ pub async fn get_snowflake(
 // ============== Formatted Config ==============
 
 /// Create a new formatted configuration.
+///
+/// # Errors
+///
+/// Returns an error if the configuration is invalid or already exists.
 pub async fn create_formatted(
     State(state): State<AppState>,
     Json(config): Json<FormattedConfig>,
@@ -69,6 +89,10 @@ pub async fn create_formatted(
 }
 
 /// Get a formatted configuration.
+///
+/// # Errors
+///
+/// Returns an error if the configuration is not found.
 pub async fn get_formatted(
     State(state): State<AppState>,
     Query(query): Query<GetConfigQuery>,

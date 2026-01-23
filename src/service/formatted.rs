@@ -41,6 +41,10 @@ impl FormattedService {
     /// # Returns
     ///
     /// A vector of generated ID strings.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is not found, pattern is invalid, or storage fails.
     pub async fn generate(&self, name: &str, count: u32) -> Result<Vec<String>> {
         // Get configuration
         let config = self
@@ -51,8 +55,7 @@ impl FormattedService {
             .ok_or_else(|| AppError::ConfigNotFound(name.to_string()))?;
 
         // Parse pattern
-        let pattern =
-            ParsedPattern::parse(&config.pattern).map_err(|e| AppError::InvalidConfig(e))?;
+        let pattern = ParsedPattern::parse(&config.pattern).map_err(AppError::InvalidConfig)?;
 
         // If pattern has sequence, we need to get sequence numbers
         if pattern.has_sequence() {
@@ -61,9 +64,7 @@ impl FormattedService {
 
             let mut ids = Vec::with_capacity(count as usize);
             for seq in sequences {
-                let id = pattern
-                    .generate(Some(seq))
-                    .map_err(|e| AppError::Internal(e))?;
+                let id = pattern.generate(Some(seq)).map_err(AppError::Internal)?;
                 ids.push(id);
             }
 
@@ -72,7 +73,7 @@ impl FormattedService {
             // Pattern without sequence (UUID or random only)
             let mut ids = Vec::with_capacity(count as usize);
             for _ in 0..count {
-                let id = pattern.generate(None).map_err(|e| AppError::Internal(e))?;
+                let id = pattern.generate(None).map_err(AppError::Internal)?;
                 ids.push(id);
             }
             Ok(ids)
@@ -137,9 +138,13 @@ impl FormattedService {
     }
 
     /// Create a new formatted configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is invalid, already exists, or storage fails.
     pub async fn create_config(&self, config: FormattedConfig) -> Result<()> {
         // Validate configuration
-        config.validate().map_err(|e| AppError::InvalidConfig(e))?;
+        config.validate().map_err(AppError::InvalidConfig)?;
 
         // Check if already exists
         if self
@@ -162,6 +167,10 @@ impl FormattedService {
     }
 
     /// Get a formatted configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is not found or storage fails.
     pub async fn get_config(&self, name: &str) -> Result<FormattedConfig> {
         self.storage
             .get_formatted_config(name)
@@ -171,6 +180,10 @@ impl FormattedService {
     }
 
     /// List all formatted configurations.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if storage fails.
     pub async fn list_configs(&self) -> Result<Vec<FormattedConfig>> {
         self.storage
             .list_formatted_configs()
@@ -179,6 +192,10 @@ impl FormattedService {
     }
 
     /// Delete a formatted configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if storage fails.
     pub async fn delete_config(&self, name: &str) -> Result<bool> {
         self.storage
             .delete_formatted_config(name)

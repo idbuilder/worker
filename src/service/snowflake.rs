@@ -44,6 +44,7 @@ pub struct WorkerIdAllocator {
 
 impl WorkerIdAllocator {
     /// Create a new worker ID allocator.
+    #[must_use]
     pub fn new(lease_duration: Duration) -> Self {
         Self {
             next_id: RwLock::new(HashMap::new()),
@@ -53,17 +54,17 @@ impl WorkerIdAllocator {
     }
 
     /// Allocate a worker ID for a configuration.
+    #[allow(clippy::significant_drop_tightening)] // Lock scope is intentionally structured for clarity
     pub fn allocate(&self, config_name: &str, max_worker_id: u32) -> Option<u32> {
         // Clean up expired allocations first
         self.cleanup_expired(config_name);
 
-        let mut next_ids = self.next_id.write();
-        let counter = next_ids
+        let start_id = self
+            .next_id
+            .write()
             .entry(config_name.to_string())
-            .or_insert_with(|| AtomicU32::new(0));
-
-        // Try to find an available worker ID
-        let start_id = counter.load(Ordering::SeqCst);
+            .or_insert_with(|| AtomicU32::new(0))
+            .load(Ordering::SeqCst);
         let mut current_id = start_id;
 
         loop {
@@ -72,20 +73,21 @@ impl WorkerIdAllocator {
             }
 
             if !self.is_allocated(config_name, current_id) {
-                // Found an available ID
-                counter.store((current_id + 1) % (max_worker_id + 1), Ordering::SeqCst);
+                // Found an available ID - update counter
+                if let Some(counter) = self.next_id.write().get(config_name) {
+                    counter.store((current_id + 1) % (max_worker_id + 1), Ordering::SeqCst);
+                }
 
                 // Record allocation
-                let mut allocations = self.allocations.write();
-                let config_allocations = allocations
+                self.allocations
+                    .write()
                     .entry(config_name.to_string())
-                    .or_insert_with(Vec::new);
-
-                config_allocations.push(WorkerIdAllocation {
-                    worker_id: current_id,
-                    allocated_at: Instant::now(),
-                    lease_duration: self.lease_duration,
-                });
+                    .or_default()
+                    .push(WorkerIdAllocation {
+                        worker_id: current_id,
+                        allocated_at: Instant::now(),
+                        lease_duration: self.lease_duration,
+                    });
 
                 return Some(current_id);
             }
@@ -106,13 +108,13 @@ impl WorkerIdAllocator {
     fn is_allocated(&self, config_name: &str, worker_id: u32) -> bool {
         let allocations = self.allocations.read();
 
-        if let Some(config_allocations) = allocations.get(config_name) {
-            config_allocations
-                .iter()
-                .any(|a| a.worker_id == worker_id && a.is_valid())
-        } else {
-            false
-        }
+        allocations
+            .get(config_name)
+            .is_some_and(|config_allocations| {
+                config_allocations
+                    .iter()
+                    .any(|a| a.worker_id == worker_id && a.is_valid())
+            })
     }
 
     /// Clean up expired allocations for a config.
@@ -120,7 +122,7 @@ impl WorkerIdAllocator {
         let mut allocations = self.allocations.write();
 
         if let Some(config_allocations) = allocations.get_mut(config_name) {
-            config_allocations.retain(|a| a.is_valid());
+            config_allocations.retain(WorkerIdAllocation::is_valid);
         }
     }
 }
@@ -160,6 +162,10 @@ impl SnowflakeService {
     ///
     /// This is the main endpoint for clients requesting Snowflake ID generation.
     /// Clients receive all parameters needed for local ID generation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is not found or no worker IDs are available.
     pub async fn get_config_with_worker_id(&self, name: &str) -> Result<SnowflakeIdResponse> {
         let config = self
             .storage
@@ -177,8 +183,7 @@ impl SnowflakeService {
             .allocate(name, max_worker_id)
             .ok_or_else(|| {
                 AppError::Internal(format!(
-                    "No available worker IDs for config '{}' (max: {})",
-                    name, max_worker_id
+                    "No available worker IDs for config '{name}' (max: {max_worker_id})"
                 ))
             })?;
 
@@ -191,9 +196,13 @@ impl SnowflakeService {
     }
 
     /// Create a new Snowflake configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is invalid, already exists, or storage fails.
     pub async fn create_config(&self, config: SnowflakeConfig) -> Result<()> {
         // Validate configuration
-        config.validate().map_err(|e| AppError::InvalidConfig(e))?;
+        config.validate().map_err(AppError::InvalidConfig)?;
 
         // Check if already exists
         if self
@@ -216,6 +225,10 @@ impl SnowflakeService {
     }
 
     /// Get a Snowflake configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is not found or storage fails.
     pub async fn get_config(&self, name: &str) -> Result<SnowflakeConfig> {
         self.storage
             .get_snowflake_config(name)
@@ -225,6 +238,10 @@ impl SnowflakeService {
     }
 
     /// List all Snowflake configurations.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if storage fails.
     pub async fn list_configs(&self) -> Result<Vec<SnowflakeConfig>> {
         self.storage
             .list_snowflake_configs()
@@ -233,6 +250,10 @@ impl SnowflakeService {
     }
 
     /// Delete a Snowflake configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if storage fails.
     pub async fn delete_config(&self, name: &str) -> Result<bool> {
         self.storage
             .delete_snowflake_config(name)

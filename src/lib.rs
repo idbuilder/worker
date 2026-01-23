@@ -1,4 +1,4 @@
-//! # IDBuilder Worker
+//! # `IDBuilder` Worker
 //!
 //! A distributed ID generation service supporting multiple ID types:
 //!
@@ -43,7 +43,7 @@ use crate::api::state::AppState;
 use crate::config::AppConfig;
 use crate::storage::create_storage;
 
-/// Run the IDBuilder worker service.
+/// Run the `IDBuilder` worker service.
 ///
 /// This function:
 /// 1. Loads configuration from files and environment

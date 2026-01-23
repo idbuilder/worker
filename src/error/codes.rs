@@ -78,6 +78,7 @@ impl ErrorCode {
 
     /// Get the error code as a u32.
     #[must_use]
+    #[allow(clippy::cast_sign_loss)]
     pub const fn as_u32(self) -> u32 {
         self.0 as u32
     }

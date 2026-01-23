@@ -21,12 +21,16 @@ pub struct GenerateQuery {
     pub count: u32,
 }
 
-fn default_count() -> u32 {
+const fn default_count() -> u32 {
     1
 }
 
 impl GenerateQuery {
     /// Validate the query parameters.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if parameters are invalid.
     fn validate(&self) -> Result<()> {
         if self.name.is_empty() {
             return Err(AppError::BadRequest("name is required".to_string()));
@@ -42,6 +46,10 @@ impl GenerateQuery {
 }
 
 /// Generate auto-increment IDs.
+///
+/// # Errors
+///
+/// Returns an error if the configuration is not found or generation fails.
 pub async fn generate_increment(
     State(state): State<AppState>,
     Query(query): Query<GenerateQuery>,
@@ -57,6 +65,10 @@ pub async fn generate_increment(
 }
 
 /// Get snowflake configuration with worker ID.
+///
+/// # Errors
+///
+/// Returns an error if the configuration is not found.
 pub async fn get_snowflake(
     State(state): State<AppState>,
     Query(query): Query<GenerateQuery>,
@@ -74,6 +86,10 @@ pub async fn get_snowflake(
 }
 
 /// Generate formatted string IDs.
+///
+/// # Errors
+///
+/// Returns an error if the configuration is not found or generation fails.
 pub async fn generate_formatted(
     State(state): State<AppState>,
     Query(query): Query<GenerateQuery>,

@@ -1,5 +1,6 @@
 //! File-based sequence storage.
 
+use std::io::{Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
 use async_trait::async_trait;
@@ -20,6 +21,7 @@ pub struct FileSequenceStorage {
 
 impl FileSequenceStorage {
     /// Create a new file sequence storage.
+    #[must_use]
     pub fn new(sequences_dir: PathBuf) -> Self {
         Self {
             sequences_dir,
@@ -82,8 +84,7 @@ impl FileSequenceStorage {
 
         if !path.exists() {
             return Err(StorageError::NotFound(format!(
-                "Sequence '{}' not found",
-                name
+                "Sequence '{name}' not found"
             )));
         }
 
@@ -106,7 +107,6 @@ impl FileSequenceStorage {
         state.updated_at = chrono::Utc::now().timestamp_millis();
 
         // Write back (need to seek to beginning and truncate)
-        use std::io::{Seek, SeekFrom, Write};
         let mut file = file;
         file.seek(SeekFrom::Start(0))?;
         file.set_len(0)?;
@@ -157,7 +157,7 @@ impl SequenceStorage for FileSequenceStorage {
 
         let state = self
             .read_state_locked(name)?
-            .ok_or_else(|| StorageError::NotFound(format!("Sequence '{}' not found", name)))?;
+            .ok_or_else(|| StorageError::NotFound(format!("Sequence '{name}' not found")))?;
 
         Ok(state.current_value)
     }

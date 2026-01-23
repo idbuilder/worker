@@ -17,7 +17,7 @@ pub use storage::{
 };
 
 /// Application configuration.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct AppConfig {
     /// HTTP server configuration.
     pub server: ServerConfig,
@@ -43,7 +43,7 @@ impl AppConfig {
     ///
     /// Configuration is loaded in the following order (later sources override earlier):
     /// 1. `config/default.toml`
-    /// 2. `config/{IDBUILDER_PROFILE}.toml` (if IDBUILDER_PROFILE is set)
+    /// 2. `config/{IDBUILDER_PROFILE}.toml` (if `IDBUILDER_PROFILE` is set)
     /// 3. Environment variables with `IDBUILDER__` prefix
     ///
     /// # Errors
@@ -97,19 +97,6 @@ impl AppConfig {
     }
 }
 
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            server: ServerConfig::default(),
-            storage: StorageConfig::default(),
-            controller: ControllerConfig::default(),
-            sequence: SequenceConfig::default(),
-            auth: AuthConfig::default(),
-            observability: ObservabilityConfig::default(),
-        }
-    }
-}
-
 /// Controller service configuration.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ControllerConfig {
@@ -122,7 +109,7 @@ pub struct ControllerConfig {
     pub heartbeat_interval: u64,
 }
 
-fn default_heartbeat_interval() -> u64 {
+const fn default_heartbeat_interval() -> u64 {
     30
 }
 
@@ -147,11 +134,11 @@ pub struct SequenceConfig {
     pub prefetch_threshold: u32,
 }
 
-fn default_batch_size() -> u32 {
+const fn default_batch_size() -> u32 {
     1000
 }
 
-fn default_prefetch_threshold() -> u32 {
+const fn default_prefetch_threshold() -> u32 {
     100
 }
 
@@ -180,7 +167,7 @@ fn default_admin_token() -> String {
     "admin_change_me_in_production".to_string()
 }
 
-fn default_key_token_expiration() -> u64 {
+const fn default_key_token_expiration() -> u64 {
     30 * 24 * 60 * 60 // 30 days
 }
 
@@ -221,7 +208,7 @@ fn default_log_format() -> String {
     "text".to_string()
 }
 
-fn default_metrics_enabled() -> bool {
+const fn default_metrics_enabled() -> bool {
     true
 }
 

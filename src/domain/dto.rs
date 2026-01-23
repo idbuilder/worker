@@ -59,12 +59,16 @@ pub struct GenerateRequest {
     pub count: u32,
 }
 
-fn default_count() -> u32 {
+const fn default_count() -> u32 {
     1
 }
 
 impl GenerateRequest {
     /// Validate the request.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request parameters are invalid.
     pub fn validate(&self) -> Result<(), String> {
         if self.name.is_empty() {
             return Err("name is required".to_string());
@@ -88,7 +92,8 @@ pub struct IdResponse<T> {
 
 impl<T> IdResponse<T> {
     /// Create a new ID response.
-    pub fn new(ids: Vec<T>) -> Self {
+    #[must_use]
+    pub const fn new(ids: Vec<T>) -> Self {
         Self { ids }
     }
 }
@@ -129,7 +134,8 @@ pub struct ConfigResponse<T> {
 
 impl<T> ConfigResponse<T> {
     /// Create a new config response.
-    pub fn new(config: T, created_at: String) -> Self {
+    #[must_use]
+    pub const fn new(config: T, created_at: String) -> Self {
         Self { config, created_at }
     }
 }
@@ -150,7 +156,7 @@ pub struct TokenRequest {
     pub permissions: Vec<String>,
 }
 
-fn default_expiration() -> u64 {
+const fn default_expiration() -> u64 {
     30 * 24 * 60 * 60 // 30 days
 }
 

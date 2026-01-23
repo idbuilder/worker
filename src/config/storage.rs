@@ -14,10 +14,10 @@ pub enum StorageBackend {
     File,
     /// Redis storage (high-performance distributed).
     Redis,
-    /// MySQL storage (strong consistency).
+    /// `MySQL` storage (strong consistency).
     #[serde(rename = "mysql")]
     MySQL,
-    /// PostgreSQL storage (strong consistency).
+    /// `PostgreSQL` storage (strong consistency).
     #[serde(rename = "postgresql")]
     PostgreSQL,
 }
@@ -48,17 +48,21 @@ pub struct StorageConfig {
     #[serde(default)]
     pub redis: RedisStorageConfig,
 
-    /// MySQL storage configuration.
+    /// `MySQL` storage configuration.
     #[serde(default)]
     pub mysql: MySqlStorageConfig,
 
-    /// PostgreSQL storage configuration.
+    /// `PostgreSQL` storage configuration.
     #[serde(default)]
     pub postgresql: PostgresStorageConfig,
 }
 
 impl StorageConfig {
     /// Validate the storage configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if required configuration fields are missing for the selected backend.
     pub fn validate(&self) -> Result<(), ConfigError> {
         match self.backend {
             StorageBackend::File => {
@@ -145,11 +149,11 @@ fn default_redis_urls() -> Vec<String> {
     vec!["redis://127.0.0.1:6379".to_string()]
 }
 
-fn default_pool_size() -> u32 {
+const fn default_pool_size() -> u32 {
     10
 }
 
-fn default_connect_timeout() -> u64 {
+const fn default_connect_timeout() -> u64 {
     5
 }
 
@@ -163,10 +167,10 @@ impl Default for RedisStorageConfig {
     }
 }
 
-/// MySQL storage configuration.
+/// `MySQL` storage configuration.
 #[derive(Debug, Clone, Deserialize)]
 pub struct MySqlStorageConfig {
-    /// MySQL connection URL.
+    /// `MySQL` connection URL.
     #[serde(default)]
     pub url: String,
 
@@ -183,11 +187,11 @@ pub struct MySqlStorageConfig {
     pub connect_timeout: u64,
 }
 
-fn default_min_connections() -> u32 {
+const fn default_min_connections() -> u32 {
     5
 }
 
-fn default_max_connections() -> u32 {
+const fn default_max_connections() -> u32 {
     20
 }
 
@@ -202,10 +206,10 @@ impl Default for MySqlStorageConfig {
     }
 }
 
-/// PostgreSQL storage configuration.
+/// `PostgreSQL` storage configuration.
 #[derive(Debug, Clone, Deserialize)]
 pub struct PostgresStorageConfig {
-    /// PostgreSQL connection URL.
+    /// `PostgreSQL` connection URL.
     #[serde(default)]
     pub url: String,
 

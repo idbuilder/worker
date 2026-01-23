@@ -36,7 +36,9 @@ impl SequenceRange {
         if diff < 0 {
             0
         } else {
-            (diff / self.step.abs()) as u64 + 1
+            #[allow(clippy::cast_sign_loss)]
+            let count = (diff / self.step.abs()) as u64 + 1;
+            count
         }
     }
 
@@ -47,13 +49,23 @@ impl SequenceRange {
     }
 
     /// Iterate over values in the range.
-    pub fn iter(&self) -> SequenceRangeIterator {
+    #[must_use]
+    pub const fn iter(&self) -> SequenceRangeIterator {
         SequenceRangeIterator {
             current: self.start,
             end: self.end,
             step: self.step,
             exhausted: false,
         }
+    }
+}
+
+impl IntoIterator for &SequenceRange {
+    type Item = i64;
+    type IntoIter = SequenceRangeIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 
@@ -105,6 +117,7 @@ impl Iterator for SequenceRangeIterator {
             return (0, Some(0));
         }
 
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let remaining = if self.step > 0 {
             if self.current > self.end {
                 0

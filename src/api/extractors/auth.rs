@@ -17,16 +17,19 @@ pub struct AuthContext {
 
 impl AuthContext {
     /// Create a new auth context.
-    pub fn new(token_type: TokenType, token: String) -> Self {
+    #[must_use]
+    pub const fn new(token_type: TokenType, token: String) -> Self {
         Self { token_type, token }
     }
 
     /// Check if this is an admin token.
+    #[must_use]
     pub fn is_admin(&self) -> bool {
         self.token_type == TokenType::Admin
     }
 
     /// Check if this is a key token.
+    #[must_use]
     pub fn is_key(&self) -> bool {
         self.token_type == TokenType::Key
     }
@@ -45,7 +48,7 @@ where
         // Get auth context from extensions (set by auth middleware)
         let result = parts
             .extensions
-            .get::<AuthContext>()
+            .get::<Self>()
             .cloned()
             .ok_or(AppError::Unauthorized);
         std::future::ready(result)

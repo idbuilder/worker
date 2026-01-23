@@ -35,6 +35,10 @@ pub trait IdConfig: Send + Sync + Clone + Serialize + for<'de> Deserialize<'de> 
     fn id_type() -> IdType;
 
     /// Validate the configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is invalid.
     fn validate(&self) -> Result<(), String>;
 }
 
@@ -61,16 +65,16 @@ pub struct IncrementConfig {
     pub max: i64,
 }
 
-fn default_start() -> i64 {
+const fn default_start() -> i64 {
     1
 }
-fn default_step() -> i64 {
+const fn default_step() -> i64 {
     1
 }
-fn default_min() -> i64 {
+const fn default_min() -> i64 {
     1
 }
-fn default_max() -> i64 {
+const fn default_max() -> i64 {
     i64::MAX
 }
 
@@ -140,13 +144,13 @@ pub struct SnowflakeConfig {
     pub sequence_bits: u8,
 }
 
-fn default_epoch() -> i64 {
+const fn default_epoch() -> i64 {
     1_704_067_200_000 // 2024-01-01 00:00:00 UTC
 }
-fn default_worker_bits() -> u8 {
+const fn default_worker_bits() -> u8 {
     10
 }
-fn default_sequence_bits() -> u8 {
+const fn default_sequence_bits() -> u8 {
     12
 }
 
@@ -199,10 +203,11 @@ impl Default for SnowflakeConfig {
 }
 
 /// Sequence reset mode for formatted IDs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SequenceReset {
     /// Never reset the sequence.
+    #[default]
     Never,
     /// Reset sequence daily at midnight.
     Daily,
@@ -210,12 +215,6 @@ pub enum SequenceReset {
     Monthly,
     /// Reset sequence yearly on January 1st.
     Yearly,
-}
-
-impl Default for SequenceReset {
-    fn default() -> Self {
-        Self::Never
-    }
 }
 
 /// Configuration for formatted string ID generation.
@@ -284,7 +283,7 @@ impl Default for FormattedConfig {
 
 /// Validate a pattern string.
 fn validate_pattern(pattern: &str) -> Result<(), String> {
-    let mut chars = pattern.chars().peekable();
+    let mut chars = pattern.chars();
     let mut has_sequence = false;
 
     while let Some(c) = chars.next() {
@@ -317,7 +316,7 @@ fn validate_pattern(pattern: &str) -> Result<(), String> {
 
     if !has_sequence && !pattern.contains("{UUID}") && !pattern.contains("{RAND:") {
         return Err(
-            "pattern must contain at least one of: {SEQ:N}, {UUID}, or {RAND:N}".to_string(),
+            "pattern must contain at least one of: {{SEQ:N}}, {{UUID}}, or {{RAND:N}}".to_string(),
         );
     }
 
@@ -330,13 +329,15 @@ fn is_valid_placeholder(placeholder: &str) -> bool {
         "YYYY" | "YY" | "MM" | "DD" | "HH" | "mm" | "ss" | "UUID" => true,
         _ => {
             // Check for SEQ:N or RAND:N format
-            if let Some(n_str) = placeholder.strip_prefix("SEQ:") {
-                n_str.parse::<u8>().is_ok_and(|n| n > 0 && n <= 20)
-            } else if let Some(n_str) = placeholder.strip_prefix("RAND:") {
-                n_str.parse::<u8>().is_ok_and(|n| n > 0 && n <= 32)
-            } else {
-                false
-            }
+            placeholder
+                .strip_prefix("SEQ:")
+                .map(|n_str| n_str.parse::<u8>().is_ok_and(|n| n > 0 && n <= 20))
+                .or_else(|| {
+                    placeholder
+                        .strip_prefix("RAND:")
+                        .map(|n_str| n_str.parse::<u8>().is_ok_and(|n| n > 0 && n <= 32))
+                })
+                .unwrap_or(false)
         }
     }
 }

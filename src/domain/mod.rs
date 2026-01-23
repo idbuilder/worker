@@ -1,4 +1,4 @@
-//! Domain models for IDBuilder.
+//! Domain models for `IDBuilder`.
 //!
 //! This module contains the core domain types representing ID configurations,
 //! sequences, and API contracts.

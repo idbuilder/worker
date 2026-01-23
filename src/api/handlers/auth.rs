@@ -29,6 +29,10 @@ pub struct CreateTokenRequest {
 }
 
 /// Create a new key token.
+///
+/// # Errors
+///
+/// Returns an error if token generation fails.
 pub async fn create_token(
     State(state): State<AppState>,
     Json(request): Json<CreateTokenRequest>,
@@ -51,6 +55,10 @@ pub async fn create_token(
 }
 
 /// Revoke a token.
+///
+/// # Errors
+///
+/// Returns an error if the token is not found.
 pub async fn revoke_token(
     State(state): State<AppState>,
     Path(token_id): Path<String>,

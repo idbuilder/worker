@@ -21,6 +21,8 @@ pub struct CachedSequence {
 
 impl CachedSequence {
     /// Create a new cached sequence from a range.
+    #[must_use]
+    #[allow(clippy::missing_const_for_fn)] // AtomicI64::new is not const
     pub fn from_range(range: SequenceRange) -> Self {
         Self {
             current: AtomicI64::new(range.start),
@@ -77,6 +79,7 @@ impl CachedSequence {
     pub fn remaining(&self) -> u64 {
         let current = self.current.load(Ordering::SeqCst);
 
+        #[allow(clippy::cast_sign_loss)]
         if self.step > 0 {
             if current > self.max {
                 0
@@ -106,6 +109,7 @@ pub struct SequenceCache {
 
 impl SequenceCache {
     /// Create a new sequence cache.
+    #[must_use]
     pub fn new(prefetch_threshold: u32) -> Self {
         Self {
             sequences: RwLock::new(HashMap::new()),
@@ -117,22 +121,25 @@ impl SequenceCache {
     ///
     /// Returns `Ok(values)` if all requested values were cached.
     /// Returns `Err(missing_count)` if cache is insufficient.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(missing_count)` if the cache doesn't have enough values.
     pub fn get(&self, name: &str, count: u32) -> Result<Vec<i64>, u32> {
         let sequences = self.sequences.read();
 
-        if let Some(cached) = sequences.get(name) {
+        sequences.get(name).map_or(Err(count), |cached| {
             let values = cached.next_batch(count);
 
             if values.len() == count as usize {
                 Ok(values)
             } else {
                 // Not enough in cache
-                Err(count - values.len() as u32)
+                #[allow(clippy::cast_possible_truncation)]
+                let missing = count - values.len() as u32;
+                Err(missing)
             }
-        } else {
-            // No cache for this sequence
-            Err(count)
-        }
+        })
     }
 
     /// Add a new range to the cache.
@@ -147,8 +154,7 @@ impl SequenceCache {
 
         sequences
             .get(name)
-            .map(|c| c.needs_refill(self.prefetch_threshold))
-            .unwrap_or(true)
+            .is_none_or(|c| c.needs_refill(self.prefetch_threshold))
     }
 
     /// Remove a sequence from cache.

@@ -19,13 +19,10 @@ use crate::service::TokenType;
 fn extract_bearer_token(req: &Request<Body>) -> Option<String> {
     let auth_header = req.headers().get(AUTHORIZATION)?.to_str().ok()?;
 
-    if let Some(token) = auth_header.strip_prefix("Bearer ") {
-        Some(token.to_string())
-    } else if let Some(token) = auth_header.strip_prefix("bearer ") {
-        Some(token.to_string())
-    } else {
-        None
-    }
+    auth_header
+        .strip_prefix("Bearer ")
+        .or_else(|| auth_header.strip_prefix("bearer "))
+        .map(ToString::to_string)
 }
 
 /// Create an unauthorized response.
@@ -56,14 +53,12 @@ pub async fn require_auth(
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
-    let token = match extract_bearer_token(&req) {
-        Some(t) => t,
-        None => return unauthorized_response("Missing or invalid Authorization header"),
+    let Some(token) = extract_bearer_token(&req) else {
+        return unauthorized_response("Missing or invalid Authorization header");
     };
 
-    let token_type = match state.token_service.validate(&token) {
-        Some(t) => t,
-        None => return unauthorized_response("Invalid or expired token"),
+    let Some(token_type) = state.token_service.validate(&token) else {
+        return unauthorized_response("Invalid or expired token");
     };
 
     // Add auth context to request extensions
@@ -79,14 +74,12 @@ pub async fn require_admin(
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
-    let token = match extract_bearer_token(&req) {
-        Some(t) => t,
-        None => return unauthorized_response("Missing or invalid Authorization header"),
+    let Some(token) = extract_bearer_token(&req) else {
+        return unauthorized_response("Missing or invalid Authorization header");
     };
 
-    let token_type = match state.token_service.validate(&token) {
-        Some(t) => t,
-        None => return unauthorized_response("Invalid or expired token"),
+    let Some(token_type) = state.token_service.validate(&token) else {
+        return unauthorized_response("Invalid or expired token");
     };
 
     if token_type != TokenType::Admin {
@@ -106,14 +99,12 @@ pub async fn require_key(
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
-    let token = match extract_bearer_token(&req) {
-        Some(t) => t,
-        None => return unauthorized_response("Missing or invalid Authorization header"),
+    let Some(token) = extract_bearer_token(&req) else {
+        return unauthorized_response("Missing or invalid Authorization header");
     };
 
-    let token_type = match state.token_service.validate(&token) {
-        Some(t) => t,
-        None => return unauthorized_response("Invalid or expired token"),
+    let Some(token_type) = state.token_service.validate(&token) else {
+        return unauthorized_response("Invalid or expired token");
     };
 
     // Both admin and key tokens can access key routes

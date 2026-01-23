@@ -20,6 +20,7 @@ pub struct FileConfigStorage {
 
 impl FileConfigStorage {
     /// Create a new file config storage.
+    #[must_use]
     pub fn new(configs_dir: PathBuf) -> Self {
         Self {
             configs_dir,

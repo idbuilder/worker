@@ -2,6 +2,8 @@
 //!
 //! Parses pattern strings like "INV{YYYY}{MM}{DD}-{SEQ:4}" and generates IDs.
 
+use std::fmt::Write;
+
 use chrono::{Datelike, Timelike, Utc};
 use rand::Rng;
 
@@ -45,9 +47,13 @@ pub struct ParsedPattern {
 
 impl ParsedPattern {
     /// Parse a pattern string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the pattern contains invalid placeholders or unclosed braces.
     pub fn parse(pattern: &str) -> Result<Self, String> {
         let mut parts = Vec::new();
-        let mut chars = pattern.chars().peekable();
+        let mut chars = pattern.chars();
         let mut literal = String::new();
         let mut has_sequence = false;
 
@@ -96,7 +102,8 @@ impl ParsedPattern {
     }
 
     /// Check if this pattern has a sequence placeholder.
-    pub fn has_sequence(&self) -> bool {
+    #[must_use]
+    pub const fn has_sequence(&self) -> bool {
         self.has_sequence
     }
 
@@ -105,6 +112,10 @@ impl ParsedPattern {
     /// # Arguments
     ///
     /// * `sequence` - Sequence number to use (if pattern has {SEQ:N})
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a sequence placeholder is present but no sequence value is provided.
     pub fn generate(&self, sequence: Option<i64>) -> Result<String, String> {
         let now = Utc::now();
         let mut result = String::new();
@@ -112,16 +123,16 @@ impl ParsedPattern {
         for part in &self.parts {
             match part {
                 Placeholder::Literal(s) => result.push_str(s),
-                Placeholder::Year4 => result.push_str(&format!("{:04}", now.year())),
-                Placeholder::Year2 => result.push_str(&format!("{:02}", now.year() % 100)),
-                Placeholder::Month => result.push_str(&format!("{:02}", now.month())),
-                Placeholder::Day => result.push_str(&format!("{:02}", now.day())),
-                Placeholder::Hour => result.push_str(&format!("{:02}", now.hour())),
-                Placeholder::Minute => result.push_str(&format!("{:02}", now.minute())),
-                Placeholder::Second => result.push_str(&format!("{:02}", now.second())),
+                Placeholder::Year4 => write!(result, "{:04}", now.year()).unwrap(),
+                Placeholder::Year2 => write!(result, "{:02}", now.year() % 100).unwrap(),
+                Placeholder::Month => write!(result, "{:02}", now.month()).unwrap(),
+                Placeholder::Day => write!(result, "{:02}", now.day()).unwrap(),
+                Placeholder::Hour => write!(result, "{:02}", now.hour()).unwrap(),
+                Placeholder::Minute => write!(result, "{:02}", now.minute()).unwrap(),
+                Placeholder::Second => write!(result, "{:02}", now.second()).unwrap(),
                 Placeholder::Sequence(width) => {
                     let seq = sequence.ok_or("sequence required but not provided")?;
-                    result.push_str(&format!("{:0width$}", seq, width = *width as usize));
+                    write!(result, "{:0width$}", seq, width = *width as usize).unwrap();
                 }
                 Placeholder::Random(len) => {
                     result.push_str(&generate_random(*len as usize));
@@ -139,6 +150,7 @@ impl ParsedPattern {
     ///
     /// This generates a key that changes based on the reset period,
     /// allowing sequence counters to reset at the appropriate interval.
+    #[must_use]
     pub fn sequence_key(&self, base_name: &str, reset: SequenceReset) -> String {
         let now = Utc::now();
 
@@ -178,21 +190,21 @@ fn parse_placeholder(placeholder: &str) -> Result<Placeholder, String> {
             if let Some(n_str) = placeholder.strip_prefix("SEQ:") {
                 let n: u8 = n_str
                     .parse()
-                    .map_err(|_| format!("invalid sequence width: {}", n_str))?;
+                    .map_err(|_| format!("invalid sequence width: {n_str}"))?;
                 if n == 0 || n > 20 {
-                    return Err(format!("sequence width must be 1-20, got {}", n));
+                    return Err(format!("sequence width must be 1-20, got {n}"));
                 }
                 Ok(Placeholder::Sequence(n))
             } else if let Some(n_str) = placeholder.strip_prefix("RAND:") {
                 let n: u8 = n_str
                     .parse()
-                    .map_err(|_| format!("invalid random length: {}", n_str))?;
+                    .map_err(|_| format!("invalid random length: {n_str}"))?;
                 if n == 0 || n > 32 {
-                    return Err(format!("random length must be 1-32, got {}", n));
+                    return Err(format!("random length must be 1-32, got {n}"));
                 }
                 Ok(Placeholder::Random(n))
             } else {
-                Err(format!("unknown placeholder: {{{}}}", placeholder))
+                Err(format!("unknown placeholder: {{{placeholder}}}"))
             }
         }
     }

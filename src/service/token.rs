@@ -51,11 +51,13 @@ pub struct TokenInfo {
 
 impl TokenInfo {
     /// Check if the token is expired.
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         Utc::now() > self.expires_at
     }
 
     /// Check if the token is valid (not expired).
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         !self.is_expired()
     }
@@ -107,6 +109,7 @@ pub struct TokenService {
 
 impl TokenService {
     /// Create a new token service.
+    #[must_use]
     pub fn new(config: &AuthConfig) -> Self {
         Self {
             admin_token: config.admin_token.clone(),
@@ -131,10 +134,10 @@ impl TokenService {
         }
 
         // Check if it's a generated key token
-        if let Some(info) = self.store.get(token) {
-            if info.is_valid() {
-                return Some(info.token_type);
-            }
+        if let Some(info) = self.store.get(token)
+            && info.is_valid()
+        {
+            return Some(info.token_type);
         }
 
         None
@@ -181,7 +184,7 @@ impl TokenService {
         let expires_at = now + chrono::Duration::from_std(expiration).unwrap_or_default();
 
         let info = TokenInfo {
-            token: token.clone(),
+            token,
             token_type: TokenType::Key,
             description,
             created_at: now,
@@ -225,7 +228,7 @@ fn generate_token(prefix: &str) -> String {
     rng.fill(&mut bytes);
 
     let encoded = URL_SAFE_NO_PAD.encode(bytes);
-    format!("{}_{}", prefix, encoded)
+    format!("{prefix}_{encoded}")
 }
 
 #[cfg(test)]

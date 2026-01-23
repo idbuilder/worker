@@ -47,6 +47,34 @@ curl -X GET "http://localhost:8080/v1/id/increment?key=order-id&size=5" \
   -H "Authorization: Bearer <key_token>"
 ```
 
+## Development
+
+### Makefile Commands
+
+| Command | Description |
+|---------|-------------|
+| `make build` | Build the release binary |
+| `make test` | Run all tests |
+| `make lint` | Run clippy and check formatting |
+| `make fmt` | Format code |
+| `make check` | Quick check without building |
+| `make clean` | Clean build artifacts |
+| `make build-docker` | Build Docker image |
+
+### Running Locally
+
+```bash
+# Build and run
+make build
+./target/release/idbuilder-worker
+
+# Run tests
+make test
+
+# Check code quality
+make lint
+```
+
 ## Configuration
 
 The Worker receives its configuration from the Controller, including:
@@ -58,3 +86,7 @@ The Worker receives its configuration from the Controller, including:
 
 - [Controller](../controller/README.md) — Manages configuration and worker coordination
 - [Design Document](../proposal/design/001-basic-design.md) — Full API specification
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.

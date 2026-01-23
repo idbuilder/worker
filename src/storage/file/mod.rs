@@ -23,7 +23,7 @@ mod config;
 mod lock;
 mod sequence;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
 
@@ -75,9 +75,9 @@ impl FileStorage {
     }
 
     /// Ensure all required directories exist.
-    fn ensure_directories(base_dir: &PathBuf) -> StorageResult<()> {
+    fn ensure_directories(base_dir: &Path) -> StorageResult<()> {
         let dirs = [
-            base_dir.clone(),
+            base_dir.to_path_buf(),
             base_dir.join("sequences"),
             base_dir.join("configs"),
             base_dir.join("configs/increment"),
@@ -88,7 +88,7 @@ impl FileStorage {
 
         for dir in &dirs {
             std::fs::create_dir_all(dir).map_err(|e| {
-                StorageError::FileIO(format!("Failed to create directory {:?}: {}", dir, e))
+                StorageError::FileIO(format!("Failed to create directory {}: {e}", dir.display()))
             })?;
         }
 
@@ -210,10 +210,10 @@ impl Storage for FileStorage {
         let test_file = self.base_dir.join(".health_check");
         tokio::fs::write(&test_file, b"ok")
             .await
-            .map_err(|e| StorageError::FileIO(format!("Health check failed: {}", e)))?;
+            .map_err(|e| StorageError::FileIO(format!("Health check failed: {e}")))?;
         tokio::fs::remove_file(&test_file)
             .await
-            .map_err(|e| StorageError::FileIO(format!("Health check cleanup failed: {}", e)))?;
+            .map_err(|e| StorageError::FileIO(format!("Health check cleanup failed: {e}")))?;
 
         Ok(())
     }

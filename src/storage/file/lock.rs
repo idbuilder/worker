@@ -33,6 +33,7 @@ struct LockInfo {
 
 impl FileLock {
     /// Create a new file lock manager.
+    #[must_use]
     pub fn new(locks_dir: PathBuf) -> Self {
         Self {
             locks_dir,
@@ -69,17 +70,16 @@ impl FileLock {
                 // Write lock metadata
                 use std::io::Write;
                 let mut file_ref = &file;
+                let pid = std::process::id();
+                let timestamp = chrono::Utc::now().timestamp_millis();
+                let ttl_ms = ttl.as_millis();
                 writeln!(
                     file_ref,
-                    "{{\"pid\":{},\"acquired_at\":{},\"ttl_ms\":{}}}",
-                    std::process::id(),
-                    chrono::Utc::now().timestamp_millis(),
-                    ttl.as_millis()
+                    "{{\"pid\":{pid},\"acquired_at\":{timestamp},\"ttl_ms\":{ttl_ms}}}"
                 )
                 .ok();
 
-                let mut active = self.active_locks.lock();
-                active.insert(
+                self.active_locks.lock().insert(
                     key.to_string(),
                     LockInfo {
                         file,
@@ -98,10 +98,10 @@ impl FileLock {
     /// Release a lock.
     #[allow(dead_code)]
     fn release_internal(&self, key: &str) {
-        let mut active = self.active_locks.lock();
-        if let Some(lock_info) = active.remove(key) {
+        let lock_info = self.active_locks.lock().remove(key);
+        if let Some(info) = lock_info {
             // Unlock and close file
-            let _ = lock_info.file.unlock();
+            let _ = info.file.unlock();
             // File is automatically closed when dropped
         }
 
@@ -127,9 +127,9 @@ impl DistributedLock for FileLock {
                 let key_for_release = key_owned.clone();
 
                 return Ok(LockGuard::new(key_owned, move || async move {
-                    let mut active = active_locks.lock();
-                    if let Some(lock_info) = active.remove(&key_for_release) {
-                        let _ = lock_info.file.unlock();
+                    let lock_info = active_locks.lock().remove(&key_for_release);
+                    if let Some(info) = lock_info {
+                        let _ = info.file.unlock();
                     }
 
                     let path = locks_dir.join(format!("{}.lock", sanitize_name(&key_for_release)));
@@ -143,8 +143,7 @@ impl DistributedLock for FileLock {
         }
 
         Err(StorageError::LockTimeout(format!(
-            "Failed to acquire lock '{}' after {} attempts",
-            key, max_attempts
+            "Failed to acquire lock '{key}' after {max_attempts} attempts"
         )))
     }
 
@@ -157,9 +156,9 @@ impl DistributedLock for FileLock {
             let key_for_release = key_owned.clone();
 
             Ok(Some(LockGuard::new(key_owned, move || async move {
-                let mut active = active_locks.lock();
-                if let Some(lock_info) = active.remove(&key_for_release) {
-                    let _ = lock_info.file.unlock();
+                let lock_info = active_locks.lock().remove(&key_for_release);
+                if let Some(info) = lock_info {
+                    let _ = info.file.unlock();
                 }
 
                 let path = locks_dir.join(format!("{}.lock", sanitize_name(&key_for_release)));
@@ -178,9 +177,8 @@ impl DistributedLock for FileLock {
         }
 
         // Try to acquire lock non-blocking
-        let file = match std::fs::OpenOptions::new().read(true).open(&path) {
-            Ok(f) => f,
-            Err(_) => return Ok(false),
+        let Ok(file) = std::fs::OpenOptions::new().read(true).open(&path) else {
+            return Ok(false);
         };
 
         match file.try_lock_exclusive() {

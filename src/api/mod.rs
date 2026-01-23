@@ -1,6 +1,6 @@
 //! API layer module.
 //!
-//! HTTP handlers, middleware, and routing for the IDBuilder service.
+//! HTTP handlers, middleware, and routing for the `IDBuilder` service.
 
 pub mod extractors;
 pub mod handlers;

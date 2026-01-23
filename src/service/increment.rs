@@ -40,6 +40,10 @@ impl IncrementService {
     /// # Returns
     ///
     /// A vector of generated IDs.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is not found, storage fails, or the sequence is exhausted.
     pub async fn generate(&self, name: &str, count: u32) -> Result<Vec<i64>> {
         // Get configuration
         let config = self
@@ -87,9 +91,13 @@ impl IncrementService {
     }
 
     /// Create a new increment configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is invalid, already exists, or storage fails.
     pub async fn create_config(&self, config: IncrementConfig) -> Result<()> {
         // Validate configuration
-        config.validate().map_err(|e| AppError::InvalidConfig(e))?;
+        config.validate().map_err(AppError::InvalidConfig)?;
 
         // Check if already exists
         if self
@@ -118,6 +126,10 @@ impl IncrementService {
     }
 
     /// Get an increment configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration is not found or storage fails.
     pub async fn get_config(&self, name: &str) -> Result<IncrementConfig> {
         self.storage
             .get_increment_config(name)
@@ -127,6 +139,10 @@ impl IncrementService {
     }
 
     /// List all increment configurations.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if storage fails.
     pub async fn list_configs(&self) -> Result<Vec<IncrementConfig>> {
         self.storage
             .list_increment_configs()
@@ -135,6 +151,10 @@ impl IncrementService {
     }
 
     /// Delete an increment configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if storage fails.
     pub async fn delete_config(&self, name: &str) -> Result<bool> {
         // Clear cache for this sequence
         self.cache.remove(name);

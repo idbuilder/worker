@@ -20,6 +20,7 @@ pub fn create_router(state: AppState) -> Router {
 
     // Configuration routes (admin auth required)
     let config_routes = Router::new()
+        .route("/list", get(config::list_configs))
         .route("/increment", post(config::create_increment))
         .route("/increment", get(config::get_increment))
         .route("/snowflake", post(config::create_snowflake))

@@ -544,6 +544,8 @@ Examples:
 | Health | GET | `/ready` | None | Readiness check |
 | Metrics | GET | `/metrics` | None | Prometheus metrics |
 | Auth | GET | `/v1/auth/token` | Admin | Get key token for ID generation |
+| Auth | GET | `/v1/auth/tokenreset` | Admin | Reset (regenerate) key token |
+| Config | GET | `/v1/config/list` | Admin | List all ID configurations with pagination |
 | Config | POST | `/v1/config/increment` | Admin | Create/Update increment config |
 | Config | GET | `/v1/config/increment` | Admin | Get increment config |
 | Config | POST | `/v1/config/snowflake` | Admin | Create/Update snowflake config |
@@ -575,6 +577,70 @@ Retrieve a key token for accessing ID generation APIs.
 | `key` | string | The requested key identifier |
 | `token` | string | Key token for ID generation API |
 | `expires_at` | string | Token expiration time (ISO 8601) |
+
+---
+
+#### GET `/v1/auth/tokenreset`
+
+Reset (regenerate) the key token for a given key. The previous token is invalidated.
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `key` | string | Yes | Identifier for the ID configuration |
+
+**Response:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `key` | string | The requested key identifier |
+| `token` | string | Newly generated key token for ID generation API |
+| `expires_at` | string | Token expiration time (ISO 8601) |
+
+---
+
+### Configuration List API
+
+#### GET `/v1/config/list`
+
+List all ID configurations with cursor-based pagination. Returns configurations across all types (increment, snowflake, formatted).
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `key` | string | No | - | Filter by key prefix (optional) |
+| `from` | string | No | - | Cursor for pagination (last key from previous batch) |
+| `size` | integer | No | 20 | Number of records to return (1-100) |
+
+**Response:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `items` | array | List of configuration summaries |
+| `items[].key` | string | Configuration key/name |
+| `items[].id_type` | string | Type: `increment`, `snowflake`, or `formatted` |
+| `next_cursor` | string | Cursor for next page (null if no more records) |
+| `has_more` | boolean | Whether there are more records |
+
+**Example Response:**
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "items": [
+      {"key": "orders", "id_type": "increment"},
+      {"key": "invoices", "id_type": "formatted"},
+      {"key": "events", "id_type": "snowflake"}
+    ],
+    "next_cursor": "events",
+    "has_more": true
+  }
+}
+```
 
 ---
 

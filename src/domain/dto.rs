@@ -176,6 +176,70 @@ pub struct TokenResponse {
     pub expires_at: String,
 }
 
+/// Query parameters for listing configurations.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListConfigQuery {
+    /// Filter by key prefix (optional).
+    #[serde(default)]
+    pub key: Option<String>,
+
+    /// Cursor for pagination (last key from previous batch).
+    #[serde(default)]
+    pub from: Option<String>,
+
+    /// Number of records to return (default: 20, max: 100).
+    #[serde(default = "default_list_size")]
+    pub size: u32,
+}
+
+const fn default_list_size() -> u32 {
+    20
+}
+
+impl ListConfigQuery {
+    /// Maximum allowed size.
+    pub const MAX_SIZE: u32 = 100;
+
+    /// Validate the query parameters.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the parameters are invalid.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.size == 0 {
+            return Err("size must be at least 1".to_string());
+        }
+        if self.size > Self::MAX_SIZE {
+            return Err(format!("size cannot exceed {}", Self::MAX_SIZE));
+        }
+        Ok(())
+    }
+}
+
+/// Summary of a configuration for listing.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfigSummary {
+    /// Configuration key/name.
+    pub key: String,
+
+    /// Type of ID generation.
+    pub id_type: String,
+}
+
+/// Response for listing configurations.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListConfigResponse {
+    /// List of configuration summaries.
+    pub items: Vec<ConfigSummary>,
+
+    /// Cursor for next page (null if no more records).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+
+    /// Whether there are more records.
+    pub has_more: bool,
+}
+
 /// Health check response.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthResponse {
@@ -248,5 +312,40 @@ mod tests {
             count: 1001,
         };
         assert!(req.validate().is_err());
+    }
+
+    #[test]
+    fn test_list_config_query_validation() {
+        // Valid with defaults
+        let query = ListConfigQuery {
+            key: None,
+            from: None,
+            size: 20,
+        };
+        assert!(query.validate().is_ok());
+
+        // Valid with custom size
+        let query = ListConfigQuery {
+            key: Some("test".to_string()),
+            from: Some("cursor".to_string()),
+            size: 100,
+        };
+        assert!(query.validate().is_ok());
+
+        // Invalid: size = 0
+        let query = ListConfigQuery {
+            key: None,
+            from: None,
+            size: 0,
+        };
+        assert!(query.validate().is_err());
+
+        // Invalid: size > MAX_SIZE
+        let query = ListConfigQuery {
+            key: None,
+            from: None,
+            size: 101,
+        };
+        assert!(query.validate().is_err());
     }
 }

@@ -1,0 +1,89 @@
+[package]
+name = "idbuilder-worker"
+version = "0.1.0"
+edition = "2024"
+authors = ["IDBuilder Team"]
+description = "Distributed ID generation service worker"
+license = "Apache-2.0"
+repository = "https://github.com/idbuilder/worker"
+rust-version = "1.93.0"
+
+[dependencies]
+# Web framework
+axum = { version = "0.8", features = ["macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace", "request-id", "util"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Database
+sqlx = { version = "0.8", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "mysql",
+    "postgres",
+    "json",
+    "chrono",
+] }
+
+# Redis
+redis = { version = "1.0", features = ["tokio-comp", "cluster-async"] }
+deadpool-redis = "0.22"
+
+# Configuration
+config = "0.15"
+dotenvy = "0.15"
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Metrics
+metrics = "0.24"
+metrics-exporter-prometheus = "0.18"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Utilities
+uuid = { version = "1", features = ["v4", "serde"] }
+rand = "0.9"
+base64 = "0.22"
+async-trait = "0.1"
+parking_lot = "0.12"
+dashmap = "6"
+bytes = "1"
+
+# File locking
+fs2 = "0.4"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3"
+criterion = { version = "0.8", features = ["async_tokio"] }
+testcontainers = "0.26"
+reqwest = { version = "0.13", features = ["json"] }
+regex = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "deny"
+pedantic = "warn"
+nursery = "warn"

@@ -1,0 +1,19 @@
+# Development configuration for IDBuilder Worker
+
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[storage]
+backend = "file"
+
+[storage.file]
+data_dir = "./data"
+
+[auth]
+# Development admin token - CHANGE IN PRODUCTION
+admin_token = "dev_admin_token_12345"
+
+[observability]
+log_level = "debug"
+log_format = "text"

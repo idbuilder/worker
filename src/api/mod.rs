@@ -1,0 +1,12 @@
+//! API layer module.
+//!
+//! HTTP handlers, middleware, and routing for the IDBuilder service.
+
+pub mod extractors;
+pub mod handlers;
+pub mod middleware;
+pub mod router;
+pub mod state;
+
+pub use router::create_router;
+pub use state::AppState;

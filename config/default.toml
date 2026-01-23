@@ -1,0 +1,79 @@
+# IDBuilder Worker Default Configuration
+# Override with environment variables using IDBUILDER__<SECTION>__<KEY> pattern
+# Example: IDBUILDER__SERVER__PORT=8080
+
+[server]
+# Host address to bind to
+host = "0.0.0.0"
+# Port to listen on
+port = 8080
+# Number of worker threads (0 = number of CPU cores)
+workers = 0
+
+[storage]
+# Storage backend: "file", "redis", "mysql", "postgresql"
+backend = "file"
+
+# File storage settings (used when backend = "file")
+[storage.file]
+# Directory for storing data files
+data_dir = "./data"
+
+# Redis settings (used when backend = "redis")
+[storage.redis]
+# Redis URL(s) - single node or cluster
+urls = ["redis://127.0.0.1:6379"]
+# Connection pool size
+pool_size = 10
+# Connection timeout in seconds
+connect_timeout = 5
+
+# MySQL settings (used when backend = "mysql")
+[storage.mysql]
+# MySQL connection URL
+url = "mysql://root:password@127.0.0.1:3306/idbuilder"
+# Connection pool minimum size
+min_connections = 5
+# Connection pool maximum size
+max_connections = 20
+# Connection timeout in seconds
+connect_timeout = 5
+
+# PostgreSQL settings (used when backend = "postgresql")
+[storage.postgresql]
+# PostgreSQL connection URL
+url = "postgresql://postgres:password@127.0.0.1:5432/idbuilder"
+# Connection pool minimum size
+min_connections = 5
+# Connection pool maximum size
+max_connections = 20
+# Connection timeout in seconds
+connect_timeout = 5
+
+[controller]
+# Controller service endpoint (optional, for cluster mode)
+endpoint = ""
+# Heartbeat interval in seconds
+heartbeat_interval = 30
+
+[sequence]
+# Default batch size for pre-allocating sequence numbers
+default_batch_size = 1000
+# Prefetch threshold (prefetch when remaining < threshold)
+prefetch_threshold = 100
+
+[auth]
+# Admin token for configuration APIs (generate a secure random string)
+admin_token = "admin_change_me_in_production"
+# Key token expiration in seconds (default: 30 days)
+key_token_expiration = 2592000
+
+[observability]
+# Log level: "trace", "debug", "info", "warn", "error"
+log_level = "info"
+# Log format: "text" or "json"
+log_format = "text"
+# Enable Prometheus metrics endpoint
+metrics_enabled = true
+# Metrics endpoint path
+metrics_path = "/metrics"

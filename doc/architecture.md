@@ -543,6 +543,7 @@ Examples:
 | Health | GET | `/health` | None | Liveness check |
 | Health | GET | `/ready` | None | Readiness check |
 | Metrics | GET | `/metrics` | None | Prometheus metrics |
+| Auth | GET | `/v1/auth/verify` | Admin | Verify admin token validity |
 | Auth | GET | `/v1/auth/token` | Admin | Get key token for ID generation |
 | Auth | GET | `/v1/auth/tokenreset` | Admin | Reset (regenerate) key token |
 | Config | GET | `/v1/config/list` | Admin | List all ID configurations with pagination |
@@ -559,6 +560,36 @@ Examples:
 ---
 
 ### Authentication API
+
+#### GET `/v1/auth/verify`
+
+Verify that the admin token is valid. This endpoint can be used by clients to check if their admin token is correct before making other API calls.
+
+**Request Parameters:** None
+
+**Response:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `code` | integer | 0 for success |
+| `message` | string | "success" |
+
+**Example Response (200 OK):**
+
+```json
+{
+  "code": 0,
+  "message": "success"
+}
+```
+
+**Error Responses:**
+
+| HTTP Status | Code | Description |
+|-------------|------|-------------|
+| 401 | 2001 | Missing or invalid admin token |
+
+---
 
 #### GET `/v1/auth/token`
 

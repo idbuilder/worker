@@ -240,6 +240,7 @@ mod tests {
             step: 1,
             min: 1,
             max: i64::MAX,
+            key_token_enable: false,
         };
 
         // Create
@@ -278,6 +279,7 @@ mod tests {
             epoch: 1704067200000,
             worker_bits: 10,
             sequence_bits: 12,
+            key_token_enable: false,
         };
 
         storage.save_snowflake_config(&config).await.unwrap();
@@ -299,6 +301,7 @@ mod tests {
             name: "invoices".to_string(),
             pattern: "INV{YYYY}{MM}{DD}-{SEQ:4}".to_string(),
             sequence_reset: SequenceReset::Daily,
+            key_token_enable: false,
         };
 
         storage.save_formatted_config(&config).await.unwrap();

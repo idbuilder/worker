@@ -6,6 +6,11 @@
 //!
 //! Key tokens are associated with a key name and can be retrieved or reset
 //! using the key name. Tokens are 64 characters of URL-safe base64.
+//!
+//! ## Global Token
+//!
+//! A special global key token (`__global__`) can be created to authenticate
+//! against any config that has `key_token_enable: false` (the default).
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -19,6 +24,20 @@ use crate::config::AuthConfig;
 
 /// Token length in characters (64 base64 chars = 48 bytes).
 const TOKEN_BYTES: usize = 48;
+
+/// Reserved key name for the global token.
+///
+/// The global token can authenticate against any config that has
+/// `key_token_enable: false` (the default).
+pub const GLOBAL_TOKEN_KEY: &str = "__global__";
+
+/// Check if a key name is reserved (starts or ends with `__`).
+///
+/// Reserved key names cannot be used for user-defined configurations.
+#[must_use]
+pub fn is_reserved_key_name(name: &str) -> bool {
+    name.starts_with("__") || name.ends_with("__")
+}
 
 /// Token type for access control.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -205,6 +224,23 @@ impl TokenService {
 
         let info = self.store.get(token)?;
         if info.is_valid() { Some(info) } else { None }
+    }
+
+    /// Get the key associated with a token.
+    ///
+    /// Returns `None` if the token is invalid, expired, or is the admin token.
+    pub fn get_token_key(&self, token: &str) -> Option<String> {
+        // Admin token doesn't have an associated key
+        if token == self.admin_token {
+            return None;
+        }
+
+        let info = self.store.get(token)?;
+        if info.is_valid() {
+            Some(info.key)
+        } else {
+            None
+        }
     }
 
     /// Get token by key name. Returns None if not found or expired.
@@ -477,5 +513,47 @@ mod tests {
         assert!(service.validate(&info.token).is_none());
         // get_token_by_key should also return None for expired tokens
         assert!(service.get_token_by_key("expired-key").is_none());
+    }
+
+    #[test]
+    fn test_is_reserved_key_name() {
+        // Reserved names (start or end with __)
+        assert!(is_reserved_key_name("__global__"));
+        assert!(is_reserved_key_name("__reserved"));
+        assert!(is_reserved_key_name("reserved__"));
+        assert!(is_reserved_key_name("__"));
+
+        // Non-reserved names
+        assert!(!is_reserved_key_name("normal-key"));
+        assert!(!is_reserved_key_name("my_key"));
+        assert!(!is_reserved_key_name("key_with_underscores"));
+        assert!(!is_reserved_key_name("_single"));
+        assert!(!is_reserved_key_name("single_"));
+        assert!(!is_reserved_key_name(""));
+    }
+
+    #[test]
+    fn test_get_token_key() {
+        let service = create_test_service();
+
+        // Admin token returns None
+        assert!(service.get_token_key("test_admin_token").is_none());
+
+        // Invalid token returns None
+        assert!(service.get_token_key("invalid_token").is_none());
+
+        // Create a key token
+        let info = service.get_or_create_token("my-key");
+        assert_eq!(
+            service.get_token_key(&info.token),
+            Some("my-key".to_string())
+        );
+
+        // Test with global token
+        let global_info = service.get_or_create_token(GLOBAL_TOKEN_KEY);
+        assert_eq!(
+            service.get_token_key(&global_info.token),
+            Some(GLOBAL_TOKEN_KEY.to_string())
+        );
     }
 }

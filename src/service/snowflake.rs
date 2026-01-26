@@ -309,6 +309,7 @@ mod tests {
             epoch: 1704067200000,
             worker_bits: 10,
             sequence_bits: 12,
+            key_token_enable: false,
         };
 
         service.create_config(config).await.unwrap();
@@ -327,6 +328,7 @@ mod tests {
             epoch: 1704067200000,
             worker_bits: 5, // max worker_id = 31
             sequence_bits: 12,
+            key_token_enable: false,
         };
 
         service.create_config(config).await.unwrap();

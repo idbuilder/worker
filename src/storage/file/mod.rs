@@ -279,6 +279,7 @@ mod tests {
             step: 1,
             min: 1,
             max: 1000,
+            key_token_enable: false,
         };
 
         // Save

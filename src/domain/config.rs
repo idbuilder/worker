@@ -4,6 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::service::is_reserved_key_name;
+
 /// Type of ID generation strategy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -63,6 +65,11 @@ pub struct IncrementConfig {
     /// Maximum allowed value.
     #[serde(default = "default_max")]
     pub max: i64,
+
+    /// Whether to require per-key token authentication.
+    /// If false (default), global token authentication is accepted.
+    #[serde(default = "default_key_token_enable")]
+    pub key_token_enable: bool,
 }
 
 const fn default_start() -> i64 {
@@ -76,6 +83,11 @@ const fn default_min() -> i64 {
 }
 const fn default_max() -> i64 {
     i64::MAX
+}
+
+/// Default for `key_token_enable` - false means global token is accepted.
+const fn default_key_token_enable() -> bool {
+    false
 }
 
 impl IdConfig for IncrementConfig {
@@ -93,6 +105,9 @@ impl IdConfig for IncrementConfig {
         }
         if self.name.len() > 255 {
             return Err("name cannot exceed 255 characters".to_string());
+        }
+        if is_reserved_key_name(&self.name) {
+            return Err("name cannot start or end with '__' (reserved)".to_string());
         }
         if self.step == 0 {
             return Err("step cannot be zero".to_string());
@@ -115,6 +130,7 @@ impl Default for IncrementConfig {
             step: 1,
             min: 1,
             max: i64::MAX,
+            key_token_enable: false,
         }
     }
 }
@@ -142,6 +158,11 @@ pub struct SnowflakeConfig {
     /// Number of bits allocated for sequence number.
     #[serde(default = "default_sequence_bits")]
     pub sequence_bits: u8,
+
+    /// Whether to require per-key token authentication.
+    /// If false (default), global token authentication is accepted.
+    #[serde(default = "default_key_token_enable")]
+    pub key_token_enable: bool,
 }
 
 const fn default_epoch() -> i64 {
@@ -169,6 +190,9 @@ impl IdConfig for SnowflakeConfig {
         }
         if self.name.len() > 255 {
             return Err("name cannot exceed 255 characters".to_string());
+        }
+        if is_reserved_key_name(&self.name) {
+            return Err("name cannot start or end with '__' (reserved)".to_string());
         }
         if self.epoch <= 0 {
             return Err("epoch must be positive".to_string());
@@ -198,6 +222,7 @@ impl Default for SnowflakeConfig {
             epoch: default_epoch(),
             worker_bits: 10,
             sequence_bits: 12,
+            key_token_enable: false,
         }
     }
 }
@@ -242,6 +267,11 @@ pub struct FormattedConfig {
     /// When to reset the sequence counter.
     #[serde(default)]
     pub sequence_reset: SequenceReset,
+
+    /// Whether to require per-key token authentication.
+    /// If false (default), global token authentication is accepted.
+    #[serde(default = "default_key_token_enable")]
+    pub key_token_enable: bool,
 }
 
 impl IdConfig for FormattedConfig {
@@ -260,6 +290,9 @@ impl IdConfig for FormattedConfig {
         if self.name.len() > 255 {
             return Err("name cannot exceed 255 characters".to_string());
         }
+        if is_reserved_key_name(&self.name) {
+            return Err("name cannot start or end with '__' (reserved)".to_string());
+        }
         if self.pattern.is_empty() {
             return Err("pattern cannot be empty".to_string());
         }
@@ -277,6 +310,7 @@ impl Default for FormattedConfig {
             name: String::new(),
             pattern: String::new(),
             sequence_reset: SequenceReset::Never,
+            key_token_enable: false,
         }
     }
 }
@@ -354,6 +388,7 @@ mod tests {
             step: 1,
             min: 1,
             max: 100,
+            key_token_enable: false,
         };
         assert!(config.validate().is_ok());
 
@@ -373,6 +408,7 @@ mod tests {
             epoch: 1_704_067_200_000,
             worker_bits: 10,
             sequence_bits: 12,
+            key_token_enable: false,
         };
         assert!(config.validate().is_ok());
 
@@ -388,6 +424,7 @@ mod tests {
             name: "invoice".to_string(),
             pattern: "INV{YYYY}{MM}{DD}-{SEQ:4}".to_string(),
             sequence_reset: SequenceReset::Daily,
+            key_token_enable: false,
         };
         assert!(config.validate().is_ok());
 
@@ -395,6 +432,7 @@ mod tests {
             name: "test".to_string(),
             pattern: "PREFIX-{UUID}".to_string(),
             sequence_reset: SequenceReset::Never,
+            key_token_enable: false,
         };
         assert!(config.validate().is_ok());
 
@@ -402,8 +440,60 @@ mod tests {
             name: "test".to_string(),
             pattern: "NO-UNIQUE-PART".to_string(),
             sequence_reset: SequenceReset::Never,
+            key_token_enable: false,
         };
         assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_reserved_name_validation() {
+        // IncrementConfig with reserved name
+        let config = IncrementConfig {
+            name: "__global__".to_string(),
+            ..Default::default()
+        };
+        let err = config.validate().unwrap_err();
+        assert!(err.contains("reserved"));
+
+        let config = IncrementConfig {
+            name: "__reserved".to_string(),
+            ..Default::default()
+        };
+        assert!(config.validate().is_err());
+
+        let config = IncrementConfig {
+            name: "reserved__".to_string(),
+            ..Default::default()
+        };
+        assert!(config.validate().is_err());
+
+        // SnowflakeConfig with reserved name
+        let config = SnowflakeConfig {
+            name: "__test__".to_string(),
+            ..Default::default()
+        };
+        assert!(config.validate().is_err());
+
+        // FormattedConfig with reserved name
+        let config = FormattedConfig {
+            name: "__test__".to_string(),
+            pattern: "{UUID}".to_string(),
+            ..Default::default()
+        };
+        assert!(config.validate().is_err());
+
+        // Valid names with underscores (but not double underscore prefix/suffix)
+        let config = IncrementConfig {
+            name: "my_key".to_string(),
+            ..Default::default()
+        };
+        assert!(config.validate().is_ok());
+
+        let config = IncrementConfig {
+            name: "_single".to_string(),
+            ..Default::default()
+        };
+        assert!(config.validate().is_ok());
     }
 
     #[test]

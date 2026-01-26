@@ -234,6 +234,7 @@ mod tests {
             name: "invoices".to_string(),
             pattern: "INV-{SEQ:6}".to_string(),
             sequence_reset: SequenceReset::Never,
+            key_token_enable: false,
         };
 
         service.create_config(config).await.unwrap();
@@ -253,6 +254,7 @@ mod tests {
             name: "orders".to_string(),
             pattern: "ORD-{UUID}".to_string(),
             sequence_reset: SequenceReset::Never,
+            key_token_enable: false,
         };
 
         service.create_config(config).await.unwrap();
@@ -272,6 +274,7 @@ mod tests {
             name: "test".to_string(),
             pattern: "{YYYY}-{SEQ:4}".to_string(),
             sequence_reset: SequenceReset::Never,
+            key_token_enable: false,
         };
 
         service.create_config(config).await.unwrap();

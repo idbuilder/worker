@@ -210,6 +210,7 @@ mod tests {
             step: 1,
             min: 1,
             max: i64::MAX,
+            key_token_enable: false,
         };
         service.create_config(config).await.unwrap();
 

@@ -250,6 +250,7 @@ mod tests {
             step: 1,
             min: 1,
             max: i64::MAX,
+            key_token_enable: false,
         };
         state
             .increment_service
@@ -262,6 +263,7 @@ mod tests {
             epoch: 1704067200000,
             worker_bits: 10,
             sequence_bits: 12,
+            key_token_enable: false,
         };
         state
             .snowflake_service
@@ -273,6 +275,7 @@ mod tests {
             name: "invoices".to_string(),
             pattern: "INV-{SEQ:6}".to_string(),
             sequence_reset: SequenceReset::Never,
+            key_token_enable: false,
         };
         state
             .formatted_service

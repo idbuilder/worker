@@ -62,6 +62,7 @@ async-trait = "0.1"
 parking_lot = "0.12"
 dashmap = "6"
 bytes = "1"
+url = "2"
 
 # File locking
 fs2 = "0.4"

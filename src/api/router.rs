@@ -4,6 +4,7 @@ use axum::{
     Router, middleware,
     routing::{get, post},
 };
+use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 
 use crate::api::handlers::{auth, config, health, id};
@@ -43,12 +44,39 @@ pub fn create_router(state: AppState) -> Router {
         .route("/verify", get(auth::verify))
         .layer(middleware::from_fn_with_state(state.clone(), require_admin));
 
+    // /api/* routes (aliases for /v1/* for admin UI compatibility)
+    let api_config_routes = Router::new()
+        .route("/list", get(config::list_configs))
+        .route("/increment", post(config::create_increment))
+        .route("/increment", get(config::get_increment))
+        .route("/snowflake", post(config::create_snowflake))
+        .route("/snowflake", get(config::get_snowflake))
+        .route("/formatted", post(config::create_formatted))
+        .route("/formatted", get(config::get_formatted))
+        .layer(middleware::from_fn_with_state(state.clone(), require_admin));
+
+    let api_auth_routes = Router::new()
+        .route("/token", get(auth::get_token))
+        .route("/tokenreset", get(auth::reset_token))
+        .route("/verify", get(auth::verify))
+        .layer(middleware::from_fn_with_state(state.clone(), require_admin));
+
     // Combine all routes
-    Router::new()
+    let mut router = Router::new()
         .merge(health_routes)
         .nest("/v1/config", config_routes)
         .nest("/v1/id", id_routes)
         .nest("/v1/auth", auth_routes)
-        .layer(TraceLayer::new_for_http())
-        .with_state(state)
+        .nest("/api/config", api_config_routes)
+        .nest("/api/auth", api_auth_routes);
+
+    // Serve admin console under /admin/ if enabled
+    if state.config.admin.enabled {
+        let static_path = &state.config.admin.path;
+        let index_file = format!("{static_path}/index.html");
+        let admin_service = ServeDir::new(static_path).fallback(ServeFile::new(&index_file));
+        router = router.nest_service("/admin", admin_service);
+    }
+
+    router.layer(TraceLayer::new_for_http()).with_state(state)
 }

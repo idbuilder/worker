@@ -77,3 +77,10 @@ log_format = "text"
 metrics_enabled = true
 # Metrics endpoint path
 metrics_path = "/metrics"
+
+[admin]
+# Enable admin console web UI (default: true)
+# Env: IDBUILDER_WORKER__ADMIN__ENABLED=false
+enabled = true
+# Path to static files directory
+path = "./static"

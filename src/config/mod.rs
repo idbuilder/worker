@@ -36,6 +36,10 @@ pub struct AppConfig {
 
     /// Observability configuration.
     pub observability: ObservabilityConfig,
+
+    /// Admin console configuration.
+    #[serde(default)]
+    pub admin: AdminConfig,
 }
 
 impl AppConfig {
@@ -223,6 +227,35 @@ impl Default for ObservabilityConfig {
             log_format: default_log_format(),
             metrics_enabled: true,
             metrics_path: default_metrics_path(),
+        }
+    }
+}
+
+/// Admin console configuration.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AdminConfig {
+    /// Enable admin console serving (default: true).
+    #[serde(default = "default_admin_enabled")]
+    pub enabled: bool,
+
+    /// Path to static files directory.
+    #[serde(default = "default_admin_path")]
+    pub path: String,
+}
+
+const fn default_admin_enabled() -> bool {
+    true
+}
+
+fn default_admin_path() -> String {
+    "./static".to_string()
+}
+
+impl Default for AdminConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_admin_enabled(),
+            path: default_admin_path(),
         }
     }
 }

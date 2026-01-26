@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IDBuilder - Login</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="card auth-card">
+      <div class="card-body">
+        <h1 class="auth-title">IDBuilder</h1>
+        <p class="auth-subtitle">Enter your admin token to continue</p>
+
+        <form id="auth-form">
+          <div class="form-group">
+            <label class="form-label" for="token-input">Admin Token</label>
+            <input
+              type="password"
+              id="token-input"
+              class="form-input"
+              placeholder="Enter admin token"
+              autocomplete="off"
+              required
+            >
+          </div>
+
+          <button type="submit" id="submit-btn" class="btn btn-primary btn-block">
+            Login
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>

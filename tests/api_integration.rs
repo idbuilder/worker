@@ -14,8 +14,8 @@ use tokio::net::TcpListener;
 
 use idbuilder_worker::api::{AppState, create_router};
 use idbuilder_worker::config::{
-    AppConfig, AuthConfig, FileStorageConfig, ObservabilityConfig, SequenceConfig, ServerConfig,
-    StorageBackend, StorageConfig,
+    AdminConfig, AppConfig, AuthConfig, FileStorageConfig, ObservabilityConfig, SequenceConfig,
+    ServerConfig, StorageBackend, StorageConfig,
 };
 use idbuilder_worker::storage::create_storage;
 
@@ -63,6 +63,10 @@ impl TestServer {
                 log_format: "text".to_string(),
                 metrics_enabled: true,
                 metrics_path: "/metrics".to_string(),
+            },
+            admin: AdminConfig {
+                enabled: false,
+                path: "./static".to_string(),
             },
         };
 

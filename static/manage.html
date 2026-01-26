@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IDBuilder - Management</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-inner">
+      <h1 class="header-title">IDBuilder</h1>
+      <div class="header-actions">
+        <button id="logout-btn" class="btn btn-secondary btn-sm">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container" style="padding-top: 24px; padding-bottom: 40px;">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="configs">Configurations</button>
+      <button class="tab" data-tab="tokens">Key Tokens</button>
+    </div>
+
+    <!-- Configs Tab -->
+    <div id="configs-tab" class="tab-content">
+      <!-- Config List -->
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">Config List</h2>
+          <select id="config-filter" class="form-select" style="width: auto;">
+            <option value="">All Types</option>
+            <option value="increment">Increment</option>
+            <option value="snowflake">Snowflake</option>
+            <option value="formatted">Formatted</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Type</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="config-tbody">
+                <tr>
+                  <td colspan="4" class="text-center"><span class="loading"></span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="config-empty" class="table-empty hidden">
+            No configurations found
+          </div>
+          <div class="pagination">
+            <span id="page-info" class="pagination-info">Page 1</span>
+            <div class="pagination-controls">
+              <button id="prev-page" class="btn btn-secondary btn-sm" disabled>Previous</button>
+              <button id="next-page" class="btn btn-secondary btn-sm">Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Config -->
+      <div id="edit-section" class="section hidden">
+        <div class="section-header">
+          <h2 class="section-title">Edit Config</h2>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <form id="edit-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Key</label>
+                  <input type="text" id="edit-key" class="form-input" disabled>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Type</label>
+                  <div id="edit-type" class="form-input" style="background: var(--color-bg);"></div>
+                </div>
+              </div>
+
+              <!-- Increment Fields -->
+              <div id="edit-increment-fields" class="edit-fields hidden">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="edit-inc-start">Start Value</label>
+                    <input type="number" id="edit-inc-start" class="form-input" value="1">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="edit-inc-step">Step</label>
+                    <input type="number" id="edit-inc-step" class="form-input" value="1">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="edit-inc-min">Min Value</label>
+                    <input type="number" id="edit-inc-min" class="form-input" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="edit-inc-max">Max Value</label>
+                    <input type="number" id="edit-inc-max" class="form-input" placeholder="No limit">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Snowflake Fields -->
+              <div id="edit-snowflake-fields" class="edit-fields hidden">
+                <div class="form-group">
+                  <label class="form-label" for="edit-sf-epoch">Epoch Timestamp (ms)</label>
+                  <input type="number" id="edit-sf-epoch" class="form-input" placeholder="Default: Twitter epoch">
+                  <p class="form-help">Custom epoch timestamp in milliseconds</p>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="edit-sf-worker-bits">Worker ID Bits</label>
+                    <input type="number" id="edit-sf-worker-bits" class="form-input" value="10" min="1" max="20">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="edit-sf-seq-bits">Sequence Bits</label>
+                    <input type="number" id="edit-sf-seq-bits" class="form-input" value="12" min="1" max="20">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Formatted Fields -->
+              <div id="edit-formatted-fields" class="edit-fields hidden">
+                <div class="form-group">
+                  <label class="form-label" for="edit-fmt-pattern">Pattern</label>
+                  <input type="text" id="edit-fmt-pattern" class="form-input" placeholder="e.g., INV{yyyyMMdd}-{####}">
+                  <p class="form-help">Pattern format: {yyyyMMdd} for date, {####} for sequence</p>
+                </div>
+              </div>
+
+              <div class="flex gap-2 mt-4">
+                <button type="button" id="save-config-btn" class="btn btn-primary">Save</button>
+                <button type="button" id="cancel-edit-btn" class="btn btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create Config -->
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">Create Config</h2>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <form id="create-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="create-type">Type</label>
+                  <select id="create-type" class="form-select" required>
+                    <option value="">Select type...</option>
+                    <option value="increment">Increment</option>
+                    <option value="snowflake">Snowflake</option>
+                    <option value="formatted">Formatted</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="create-key">Key</label>
+                  <input type="text" id="create-key" class="form-input" placeholder="e.g., order_id" required>
+                </div>
+              </div>
+
+              <!-- Increment Fields -->
+              <div id="create-increment-fields" class="create-fields hidden">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="create-inc-start">Start Value</label>
+                    <input type="number" id="create-inc-start" class="form-input" value="1">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="create-inc-step">Step</label>
+                    <input type="number" id="create-inc-step" class="form-input" value="1">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="create-inc-min">Min Value</label>
+                    <input type="number" id="create-inc-min" class="form-input" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="create-inc-max">Max Value</label>
+                    <input type="number" id="create-inc-max" class="form-input" placeholder="No limit">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Snowflake Fields -->
+              <div id="create-snowflake-fields" class="create-fields hidden">
+                <div class="form-group">
+                  <label class="form-label" for="create-sf-epoch">Epoch Timestamp (ms)</label>
+                  <input type="number" id="create-sf-epoch" class="form-input" placeholder="Default: Twitter epoch">
+                  <p class="form-help">Custom epoch timestamp in milliseconds</p>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="create-sf-worker-bits">Worker ID Bits</label>
+                    <input type="number" id="create-sf-worker-bits" class="form-input" value="10" min="1" max="20">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="create-sf-seq-bits">Sequence Bits</label>
+                    <input type="number" id="create-sf-seq-bits" class="form-input" value="12" min="1" max="20">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Formatted Fields -->
+              <div id="create-formatted-fields" class="create-fields hidden">
+                <div class="form-group">
+                  <label class="form-label" for="create-fmt-pattern">Pattern</label>
+                  <input type="text" id="create-fmt-pattern" class="form-input" placeholder="e.g., INV{yyyyMMdd}-{####}">
+                  <p class="form-help">Pattern format: {yyyyMMdd} for date, {####} for sequence</p>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary mt-4">Create Config</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tokens Tab -->
+    <div id="tokens-tab" class="tab-content hidden">
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">Key Token Management</h2>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <p class="text-muted mb-4">
+              Key tokens are used by applications to generate IDs. Each key has its own token.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label" for="token-key">Key Name</label>
+              <input type="text" id="token-key" class="form-input" placeholder="e.g., order_id">
+            </div>
+
+            <div class="flex gap-2">
+              <button id="get-token-btn" class="btn btn-primary">Get Token</button>
+              <button id="reset-token-btn" class="btn btn-danger">Reset Token</button>
+            </div>
+
+            <div id="token-display" class="token-display mt-4 hidden">
+              <span id="token-value" class="token-value"></span>
+              <button id="copy-token-btn" class="btn btn-secondary btn-sm">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="js/manage.js"></script>
+</body>
+</html>

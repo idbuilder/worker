@@ -1,6 +1,6 @@
 # IDBuilder Worker Default Configuration
-# Override with environment variables using IDBUILDER__<SECTION>__<KEY> pattern
-# Example: IDBUILDER__SERVER__PORT=8080
+# Override with environment variables using IDBUILDER_WORKER__<SECTION>__<KEY> pattern
+# Example: IDBUILDER_WORKER__SERVER__PORT=8080
 
 [server]
 # Host address to bind to

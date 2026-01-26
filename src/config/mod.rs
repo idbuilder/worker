@@ -2,7 +2,7 @@
 //!
 //! Supports loading configuration from:
 //! - TOML files (config/default.toml, config/{profile}.toml)
-//! - Environment variables with `IDBUILDER__<SECTION>__<KEY>` pattern
+//! - Environment variables with `IDBUILDER_WORKER__<SECTION>__<KEY>` pattern
 
 mod server;
 mod storage;
@@ -44,7 +44,7 @@ impl AppConfig {
     /// Configuration is loaded in the following order (later sources override earlier):
     /// 1. `config/default.toml`
     /// 2. `config/{IDBUILDER_PROFILE}.toml` (if `IDBUILDER_PROFILE` is set)
-    /// 3. Environment variables with `IDBUILDER__` prefix
+    /// 3. Environment variables with `IDBUILDER_WORKER__` prefix
     ///
     /// # Errors
     ///
@@ -61,9 +61,9 @@ impl AppConfig {
             // Load profile-specific configuration
             .add_source(File::with_name(&format!("config/{profile}")).required(false))
             // Override with environment variables
-            // IDBUILDER__SERVER__PORT=8080 -> server.port = 8080
+            // IDBUILDER_WORKER__SERVER__PORT=8080 -> server.port = 8080
             .add_source(
-                Environment::with_prefix("IDBUILDER")
+                Environment::with_prefix("IDBUILDER_WORKER")
                     .separator("__")
                     .try_parsing(true),
             )

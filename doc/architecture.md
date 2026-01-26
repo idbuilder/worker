@@ -518,12 +518,12 @@ Multiple worker instances may start simultaneously. Only one should initialize t
 
 ### Environment Variable Override
 
-Pattern: `IDBUILDER__<SECTION>__<KEY>`
+Pattern: `IDBUILDER_WORKER__<SECTION>__<KEY>`
 
 Examples:
-- `IDBUILDER__SERVER__PORT=8080`
-- `IDBUILDER__STORAGE__BACKEND=postgresql`
-- `IDBUILDER__STORAGE__POSTGRES__URL=postgresql://...`
+- `IDBUILDER_WORKER__SERVER__PORT=8080`
+- `IDBUILDER_WORKER__STORAGE__BACKEND=postgresql`
+- `IDBUILDER_WORKER__STORAGE__POSTGRES__URL=postgresql://...`
 
 ---
 

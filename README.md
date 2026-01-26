@@ -84,8 +84,8 @@ The Worker receives its configuration from the Controller, including:
 
 ## Related Components
 
-- [Controller](../controller/README.md) — Manages configuration and worker coordination
-- [Design Document](../proposal/design/001-basic-design.md) — Full API specification
+- [Controller](https://github.com/idbuilder/controller/README.md) — Manages configuration and worker coordination
+- [Design Document](https://github.com/idbuilder/proposal/design/001-basic-design.md) — Full API specification
 
 ## License
 

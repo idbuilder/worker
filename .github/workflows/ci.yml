@@ -22,8 +22,14 @@ jobs:
       - name: Install typos
         uses: crate-ci/typos@v1
 
-      - name: Run lint
-        run: make lint
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Check typos
+        run: typos
 
   test:
     name: Test
@@ -47,4 +53,4 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-
 
       - name: Run tests
-        run: make test
+        run: cargo test

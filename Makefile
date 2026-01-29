@@ -1,4 +1,4 @@
-.PHONY: build test lint build-docker clean check fmt
+.PHONY: build test lint build-docker clean check fmt typos
 
 # Project configuration
 PROJECT_NAME := idbuilder-worker
@@ -13,10 +13,11 @@ build:
 test:
 	cargo test
 
-# Run clippy and check formatting
+# Run clippy, check formatting, and check typos
 lint:
 	cargo clippy
 	cargo fmt --check
+	typos
 
 # Build Docker image
 build-docker:
@@ -33,3 +34,7 @@ check:
 # Format code
 fmt:
 	cargo fmt
+
+# Check for typos in source code
+typos:
+	typos

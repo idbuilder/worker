@@ -19,7 +19,7 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Install typos
+      - name: typos
         uses: crate-ci/typos@v1
 
       - name: Check formatting
@@ -27,9 +27,6 @@ jobs:
 
       - name: Run clippy
         run: cargo clippy -- -D warnings
-
-      - name: Check typos
-        run: typos
 
   test:
     name: Test

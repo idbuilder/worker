@@ -9,12 +9,49 @@ The Worker is the core component of IDBuilder that handles ID generation request
 - **Multiple Storage Backends**: File, Redis, MySQL, PostgreSQL
 - **Authentication**: Admin tokens and per-key tokens
 
+## Installation
+
+### Download Pre-built Binaries
+
+Download the latest release for your platform from [GitHub Releases](https://github.com/idbuilder/worker/releases):
+
+| Platform | Architecture | Download |
+|----------|--------------|----------|
+| Linux | amd64 | `idbuilder-worker-linux-amd64.tar.gz` |
+| Linux | arm64 | `idbuilder-worker-linux-arm64.tar.gz` |
+| macOS | Intel | `idbuilder-worker-darwin-amd64.tar.gz` |
+| macOS | Apple Silicon | `idbuilder-worker-darwin-arm64.tar.gz` |
+| Windows | amd64 | `idbuilder-worker-windows-amd64.zip` |
+
+```bash
+# Linux/macOS
+curl -LO https://github.com/idbuilder/worker/releases/latest/download/idbuilder-worker-linux-amd64.tar.gz
+tar -xzf idbuilder-worker-linux-amd64.tar.gz
+chmod +x idbuilder-worker
+./idbuilder-worker --help
+
+# Windows (PowerShell)
+Invoke-WebRequest -Uri https://github.com/idbuilder/worker/releases/latest/download/idbuilder-worker-windows-amd64.zip -OutFile idbuilder-worker.zip
+Expand-Archive idbuilder-worker.zip -DestinationPath .
+.\idbuilder-worker.exe --help
+```
+
+### Build from Source
+
+Requires Rust 1.93.0 or later.
+
+```bash
+git clone https://github.com/idbuilder/worker.git
+cd worker
+make build
+./target/release/idbuilder-worker
+```
+
 ## Quick Start
 
 ```bash
-# Build and run
-make build
-./target/release/idbuilder-worker
+# Run the worker
+./idbuilder-worker
 
 # Server starts at http://localhost:8080
 # Admin console available at http://localhost:8080/admin/

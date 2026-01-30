@@ -1,0 +1,237 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g.: v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+      prerelease:
+        description: 'Is this a prerelease'
+        required: false
+        type: boolean
+        default: false
+
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: idbuilder-worker
+
+jobs:
+  build-linux:
+    name: Build Linux ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            arch: amd64
+          - target: aarch64-unknown-linux-gnu
+            arch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build binary
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Package binary
+        run: |
+          ARCHIVE_NAME=${{ env.BINARY_NAME }}-linux-${{ matrix.arch }}
+          cp target/${{ matrix.target }}/release/${{ env.BINARY_NAME }} ${{ env.BINARY_NAME }}
+          tar -czvf ${ARCHIVE_NAME}.tar.gz ${{ env.BINARY_NAME }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-linux-${{ matrix.arch }}
+          path: "*.tar.gz"
+          retention-days: 1
+
+  build-macos:
+    name: Build macOS ${{ matrix.target }}
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            arch: amd64
+          - target: aarch64-apple-darwin
+            arch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package binary
+        run: |
+          ARCHIVE_NAME=${{ env.BINARY_NAME }}-darwin-${{ matrix.arch }}
+          cp target/${{ matrix.target }}/release/${{ env.BINARY_NAME }} ${{ env.BINARY_NAME }}
+          tar -czvf ${ARCHIVE_NAME}.tar.gz ${{ env.BINARY_NAME }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-darwin-${{ matrix.arch }}
+          path: "*.tar.gz"
+          retention-days: 1
+
+  build-windows:
+    name: Build Windows ${{ matrix.target }}
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            arch: amd64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package binary
+        shell: bash
+        run: |
+          ARCHIVE_NAME=${{ env.BINARY_NAME }}-windows-${{ matrix.arch }}
+          cp target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}.exe ${{ env.BINARY_NAME }}.exe
+          7z a ${ARCHIVE_NAME}.zip ${{ env.BINARY_NAME }}.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-windows-${{ matrix.arch }}
+          path: "*.zip"
+          retention-days: 1
+
+  release:
+    name: Create Release
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Generate checksums
+        working-directory: artifacts
+        run: |
+          sha256sum *.tar.gz *.zip > checksums.txt
+          cat checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          generate_release_notes: true
+          files: |
+            artifacts/*.tar.gz
+            artifacts/*.zip
+            artifacts/checksums.txt
+          body: |
+            ## IDBuilder Worker ${{ steps.version.outputs.version }}
+
+            Distributed ID generation service supporting auto-increment, snowflake, and formatted string IDs.
+
+            ### Download
+
+            | Platform | Architecture | Download |
+            |----------|--------------|----------|
+            | Linux | amd64 | `idbuilder-worker-linux-amd64.tar.gz` |
+            | Linux | arm64 | `idbuilder-worker-linux-arm64.tar.gz` |
+            | macOS | amd64 (Intel) | `idbuilder-worker-darwin-amd64.tar.gz` |
+            | macOS | arm64 (Apple Silicon) | `idbuilder-worker-darwin-arm64.tar.gz` |
+            | Windows | amd64 | `idbuilder-worker-windows-amd64.zip` |
+
+            ### Quick Start
+
+            ```bash
+            # Linux/macOS
+            tar -xzf idbuilder-worker-<os>-<arch>.tar.gz
+            chmod +x idbuilder-worker
+            ./idbuilder-worker --help
+
+            # Windows
+            # Extract zip file and run idbuilder-worker.exe
+            ```
+
+            For detailed documentation, refer to [README](https://github.com/${{ github.repository }}/blob/main/README.md)

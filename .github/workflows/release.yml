@@ -25,16 +25,48 @@ env:
   BINARY_NAME: idbuilder-worker
 
 jobs:
-  build-linux:
-    name: Build Linux ${{ matrix.target }}
+  build-linux-amd64:
+    name: Build Linux amd64
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            arch: amd64
-          - target: aarch64-unknown-linux-gnu
-            arch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-release-
+
+      - name: Build binary
+        run: cargo build --release
+
+      - name: Package binary
+        run: |
+          ARCHIVE_NAME=${{ env.BINARY_NAME }}-linux-amd64
+          cp target/release/${{ env.BINARY_NAME }} ${{ env.BINARY_NAME }}
+          tar -czvf ${ARCHIVE_NAME}.tar.gz ${{ env.BINARY_NAME }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-linux-amd64
+          path: "*.tar.gz"
+          retention-days: 1
+
+  build-linux-arm64:
+    name: Build Linux arm64
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -43,33 +75,24 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: aarch64-unknown-linux-gnu
 
       - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
-
-      - name: Get version
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          fi
+        uses: taiki-e/install-action@cross
 
       - name: Build binary
-        run: cross build --release --target ${{ matrix.target }}
+        run: cross build --release --target aarch64-unknown-linux-gnu
 
       - name: Package binary
         run: |
-          ARCHIVE_NAME=${{ env.BINARY_NAME }}-linux-${{ matrix.arch }}
-          cp target/${{ matrix.target }}/release/${{ env.BINARY_NAME }} ${{ env.BINARY_NAME }}
+          ARCHIVE_NAME=${{ env.BINARY_NAME }}-linux-arm64
+          cp target/aarch64-unknown-linux-gnu/release/${{ env.BINARY_NAME }} ${{ env.BINARY_NAME }}
           tar -czvf ${ARCHIVE_NAME}.tar.gz ${{ env.BINARY_NAME }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.BINARY_NAME }}-linux-${{ matrix.arch }}
+          name: ${{ env.BINARY_NAME }}-linux-arm64
           path: "*.tar.gz"
           retention-days: 1
 
@@ -165,7 +188,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux-amd64, build-linux-arm64, build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
